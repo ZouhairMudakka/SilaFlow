@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SilaFlow - AI-Powered Proof of Concept</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .spinner {
+            border-top-color: #3498db;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .toast {
+            animation: toast-in 0.5s, toast-out 0.5s 2.5s;
+        }
+        @keyframes toast-in {
+            from { bottom: -100px; opacity: 0; }
+            to { bottom: 20px; opacity: 1; }
+        }
+        @keyframes toast-out {
+            from { bottom: 20px; opacity: 1; }
+            to { bottom: -100px; opacity: 0; }
+        }
+        .invoice-row { cursor: pointer; }
+        .details-row { display: none; }
+        .details-row.visible { display: table-row; }
+        .offer-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .offer-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .fee-breakdown {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, margin-top 0.3s ease-out;
+        }
+        .fee-breakdown.visible {
+            max-height: 200px; /* Adjust as needed */
+            margin-top: 0.75rem; /* mt-3 */
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div id="app" class="min-h-screen flex flex-col items-center justify-center p-4">
+
+        <!-- ====================================================== -->
+        <!-- SCREEN 0: LOGIN                                        -->
+        <!-- ====================================================== -->
+        <div id="login-screen" class="w-full max-w-sm mx-auto fade-in">
+             <div class="flex flex-col items-center mb-8">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-sky-500">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h1 class="text-3xl font-bold text-slate-800 mt-2">SilaFlow</h1>
+                <p class="text-slate-500">Working Capital for UAE SMEs</p>
+            </div>
+            <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-lg">
+                <form id="login-form">
+                    <div class="space-y-6">
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-slate-700">Email Address</label>
+                            <input type="email" id="email" value="demo@smelutions.ae" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500" required>
+                        </div>
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+                            <input type="password" id="password" value="password" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500" required>
+                        </div>
+                        <button type="submit" class="w-full bg-sky-500 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-75 transition">Sign In</button>
+                    </div>
+                </form>
+            </div>
+             <p class="text-center text-xs text-slate-400 mt-4">This is a PoC. Use the dummy credentials to log in.</p>
+        </div>
+
+        <!-- Main Application Container (Hidden by default) -->
+        <div id="main-app-container" class="hidden w-full">
+            <!-- Header -->
+            <header class="w-full max-w-5xl mx-auto mb-8 flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-sky-500">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h1 class="text-2xl font-bold text-slate-800">SilaFlow</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="profile-btn" class="flex items-center space-x-2 text-slate-600 hover:text-sky-500">
+                        <img src="https://placehold.co/40x40/E2E8F0/475569?text=SS" alt="User Avatar" class="w-10 h-10 rounded-full border-2 border-slate-200">
+                        <span class="text-sm font-medium hidden sm:inline">SME Solutions Inc.</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- App Screens -->
+            <main id="main-content" class="w-full max-w-5xl mx-auto">
+                <div id="dashboard-screen" class="fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-3xl font-bold">Dashboard</h2>
+                            <p class="text-slate-500 mt-1">Welcome back! Here's your working capital overview.</p>
+                        </div>
+                        <button id="finance-invoice-btn" class="bg-sky-500 text-white font-semibold px-5 py-3 rounded-lg shadow-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 flex items-center space-x-2">
+                            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                            <span>Finance New Invoice</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="flex items-center space-x-4">
+                                <div class="bg-blue-100 p-3 rounded-full">
+                                    <i data-lucide="wallet" class="w-6 h-6 text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 text-sm">Available Balance</p>
+                                    <p id="available-balance" class="text-2xl font-bold">AED 0.00</p>
+                                </div>
+                            </div>
+                            <button id="withdraw-btn" class="mt-3 w-full text-xs bg-blue-500 text-white font-semibold py-1 rounded-md hover:bg-blue-600 disabled:bg-blue-300">Withdraw</button>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="flex items-center space-x-4">
+                                <div class="bg-green-100 p-3 rounded-full">
+                                    <i data-lucide="dollar-sign" class="w-6 h-6 text-green-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 text-sm">Capital Advanced</p>
+                                    <p id="total-capital-advanced" class="text-2xl font-bold">AED 0.00</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="flex items-center space-x-4">
+                                 <div class="bg-amber-100 p-3 rounded-full">
+                                    <i data-lucide="hourglass" class="w-6 h-6 text-amber-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 text-sm">Pending Collections</p>
+                                    <p id="pending-collections" class="text-2xl font-bold">AED 0.00</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="flex items-center space-x-4">
+                                 <div class="bg-sky-100 p-3 rounded-full">
+                                    <i data-lucide="check-circle" class="w-6 h-6 text-sky-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 text-sm">Active Invoices</p>
+                                    <p id="invoices-funded" class="text-2xl font-bold">0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h3 class="text-xl font-semibold mb-4">Recent Invoices</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b border-slate-200 text-sm text-slate-500">
+                                        <th class="py-3 px-4">Debtor</th>
+                                        <th class="py-3 px-4">Amount</th>
+                                        <th class="py-3 px-4">Due Date</th>
+                                        <th class="py-3 px-4">Status</th>
+                                        <th class="py-3 px-4 text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invoice-list-body">
+                                    <!-- Invoice rows will be dynamically inserted here -->
+                                </tbody>
+                            </table>
+                            <p id="no-invoices-message" class="hidden text-center text-slate-500 py-8">You haven't funded any invoices yet. Click "Finance New Invoice" to get started!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="upload-screen" class="hidden fade-in">
+                     <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-lg max-w-2xl mx-auto">
+                        <button id="back-to-dashboard-btn" class="text-slate-500 hover:text-sky-500 mb-6 flex items-center space-x-2">
+                            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                            <span>Back to Dashboard</span>
+                        </button>
+                        <div id="input-form-state">
+                            <h2 class="text-3xl font-bold text-center">Finance an Invoice</h2>
+                            <p class="text-slate-500 text-center mt-2 mb-8">First, select your preferred financing solution.</p>
+                            
+                            <div class="mb-8 p-1.5 bg-slate-200 rounded-lg flex w-full max-w-sm mx-auto">
+                                <button id="solution-conventional-btn" class="solution-toggle-btn w-1/2 py-2 text-sm font-semibold rounded-md bg-white text-sky-600 shadow">Conventional</button>
+                                <button id="solution-islamic-btn" class="solution-toggle-btn w-1/2 py-2 text-sm font-semibold text-slate-600">Islamic</button>
+                            </div>
+
+                            <form id="invoice-form" class="space-y-6">
+                                <div>
+                                    <label for="invoice-amount" class="block text-sm font-medium text-slate-700">Invoice Amount (AED)</label>
+                                    <input type="number" id="invoice-amount" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500" placeholder="e.g., 25000" required>
+                                </div>
+                                <div>
+                                    <label for="debtor-name" class="block text-sm font-medium text-slate-700">Debtor Name (Who is paying the invoice?)</label>
+                                    <input type="text" id="debtor-name" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500" placeholder="e.g., Emaar, ADNOC, Emirates Airlines" required>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="sme-industry" class="block text-sm font-medium text-slate-700">Your Industry</label>
+                                        <input type="text" id="sme-industry" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500" placeholder="e.g., Tech Services" required>
+                                    </div>
+                                     <div>
+                                        <label for="payment-method" class="block text-sm font-medium text-slate-700">Payment Method</label>
+                                        <select id="payment-method" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                                            <option>Bank Transfer</option>
+                                            <option>Cheque</option>
+                                            <option>Card Payment</option>
+                                            <option>Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="sme-age" class="block text-sm font-medium text-slate-700">Months in Business</label>
+                                        <input type="number" id="sme-age" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500" placeholder="e.g., 18" required>
+                                    </div>
+                                    <div>
+                                        <label for="due-date" class="block text-sm font-medium text-slate-700">Invoice Due Date</label>
+                                        <input type="date" id="due-date" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500" required>
+                                    </div>
+                                </div>
+                                <button type="submit" id="get-offer-btn" class="w-full bg-sky-500 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 flex items-center justify-center space-x-2">
+                                    <span>Get Competing Offers</span>
+                                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <div id="analysis-state" class="hidden text-center">
+                             <h2 class="text-3xl font-bold">Contacting SilaScore AI...</h2>
+                             <p class="text-slate-500 mt-2 mb-8">Our AI is assessing your invoice risk to generate offers from our marketplace.</p>
+                             <div class="flex justify-center items-center my-10">
+                                <div class="spinner w-16 h-16 rounded-full border-4 border-slate-200"></div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="offer-screen" class="hidden fade-in">
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold">Compare Your Offers</h2>
+                        <p class="text-slate-500 mt-2">Our marketplace has generated the following offers for your invoice.</p>
+                    </div>
+                    <div id="offer-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <!-- Offer cards will be dynamically inserted here -->
+                    </div>
+                     <p id="no-offers-message" class="hidden text-center text-slate-500 py-8">No providers could make a profitable offer for this invoice.</p>
+                </div>
+                
+                <div id="rejection-screen" class="hidden fade-in">
+                    <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-lg max-w-2xl mx-auto text-center">
+                        <div class="mx-auto bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mb-6">
+                            <i data-lucide="x-circle" class="w-8 h-8 text-red-600"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold">No Offers Available</h2>
+                        <p class="text-slate-500 mt-2 mb-8">Unfortunately, none of our funding partners could provide an offer for this invoice at this time.</p>
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4 my-6 text-left">
+                            <h4 class="font-semibold text-red-800 flex items-center space-x-2 mb-2"><i data-lucide="bot" class="w-5 h-5"></i><span>SilaScore AI Reasoning</span></h4>
+                            <p id="rejection-reasoning" class="text-sm text-red-700"></p>
+                        </div>
+                        <button id="try-again-btn" class="w-full bg-sky-500 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-sky-600 transition">Try Another Invoice</button>
+                    </div>
+                </div>
+
+                <div id="confirmation-screen" class="hidden fade-in">
+                     <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-lg max-w-2xl mx-auto text-center">
+                        <div class="mx-auto bg-sky-100 w-16 h-16 rounded-full flex items-center justify-center mb-6">
+                            <i data-lucide="send" class="w-8 h-8 text-sky-600"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold">Funds are on the way!</h2>
+                        <p class="text-slate-500 mt-2 mb-8">We've initiated the transfer from <span id="confirm-provider-name" class="font-semibold"></span>. You should see the funds in your account within 24-48 hours.</p>
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-6 my-8 text-left">
+                            <h3 class="font-semibold mb-3">Transaction Summary</h3>
+                            <div class="flex justify-between items-center py-2 border-b">
+                                <span class="text-slate-500">Amount being sent</span>
+                                <span id="confirm-advance-amount" class="font-bold text-green-600"></span>
+                            </div>
+                            <div class="flex justify-between items-center py-2">
+                                <span class="text-slate-500">Destination Account</span>
+                                <span class="font-bold">SME Solutions Inc. (**** 1234)</span>
+                            </div>
+                        </div>
+                        <button id="finish-btn" class="w-full bg-sky-500 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-sky-600 transition">Back to Dashboard</button>
+                    </div>
+                </div>
+                
+                <div id="profile-screen" class="hidden fade-in">
+                     <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-lg max-w-2xl mx-auto">
+                         <button id="back-to-dashboard-from-profile-btn" class="text-slate-500 hover:text-sky-500 mb-6 flex items-center space-x-2">
+                            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                            <span>Back to Dashboard</span>
+                        </button>
+                        <div class="flex items-center space-x-6 mb-8">
+                            <img src="https://placehold.co/80x80/E2E8F0/475569?text=SS" alt="User Avatar" class="w-20 h-20 rounded-full border-4 border-slate-200">
+                            <div>
+                                <h2 class="text-3xl font-bold">SME Solutions Inc.</h2>
+                                <p class="text-slate-500">demo@smelutions.ae</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-slate-50 rounded-lg border">
+                                <p class="text-sm text-slate-500">Trade License</p>
+                                <p class="font-medium">CN-1234567</p>
+                            </div>
+                            <div class="p-4 bg-slate-50 rounded-lg border">
+                                <p class="text-sm text-slate-500">Registered Address</p>
+                                <p class="font-medium">Office 101, Business Bay, Dubai, UAE</p>
+                            </div>
+                        </div>
+                        <div class="mt-8 border-t pt-6">
+                             <button id="logout-btn" class="w-full bg-red-500 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-red-600 transition flex items-center justify-center space-x-2">
+                                <i data-lucide="log-out" class="w-5 h-5"></i>
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="hidden fixed left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-lg">
+        <p id="toast-message"></p>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // --- DOM Elements ---
+        const loginScreen = document.getElementById('login-screen');
+        const mainAppContainer = document.getElementById('main-app-container');
+        const loginForm = document.getElementById('login-form');
+
+        const screens = {
+            dashboard: document.getElementById('dashboard-screen'),
+            upload: document.getElementById('upload-screen'),
+            offer: document.getElementById('offer-screen'),
+            rejection: document.getElementById('rejection-screen'),
+            confirmation: document.getElementById('confirmation-screen'),
+            profile: document.getElementById('profile-screen'),
+        };
+        const inputFormState = document.getElementById('input-form-state');
+        const analysisState = document.getElementById('analysis-state');
+        
+        const financeInvoiceBtn = document.getElementById('finance-invoice-btn');
+        const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+        const backToDashboardFromProfileBtn = document.getElementById('back-to-dashboard-from-profile-btn');
+        const invoiceForm = document.getElementById('invoice-form');
+        const getOfferBtn = document.getElementById('get-offer-btn');
+        const tryAgainBtn = document.getElementById('try-again-btn');
+        const finishBtn = document.getElementById('finish-btn');
+        const profileBtn = document.getElementById('profile-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const withdrawBtn = document.getElementById('withdraw-btn');
+        const dueDateInput = document.getElementById('due-date');
+        const offerCardsContainer = document.getElementById('offer-cards-container');
+        const noOffersMessage = document.getElementById('no-offers-message');
+        const solutionConventionalBtn = document.getElementById('solution-conventional-btn');
+        const solutionIslamicBtn = document.getElementById('solution-islamic-btn');
+        
+        const invoiceListBody = document.getElementById('invoice-list-body');
+        const noInvoicesMessageDashboard = document.getElementById('no-invoices-message');
+        const toast = document.getElementById('toast-notification');
+        const toastMessage = document.getElementById('toast-message');
+        
+        // --- State Variables ---
+        let currentInvoiceData = {
+            financingType: 'Conventional' // Default
+        };
+
+        // --- Utility Functions ---
+        const formatCurrency = (amount) => `AED ${parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
+        const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+        function showToast(message) {
+            toastMessage.textContent = message;
+            toast.classList.remove('hidden');
+            toast.classList.add('toast');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('toast');
+            }, 3000);
+        }
+
+        // --- Navigation ---
+        function showScreen(screenName) {
+            Object.values(screens).forEach(screen => screen.classList.add('hidden'));
+            if (screens[screenName]) {
+                screens[screenName].classList.remove('hidden');
+                lucide.createIcons(); 
+            }
+            if (screenName === 'dashboard') {
+                updateDashboard();
+            }
+        }
+        
+        const resetToForm = () => {
+            showScreen('upload');
+            inputFormState.classList.remove('hidden');
+            analysisState.classList.add('hidden');
+            invoiceForm.reset();
+            setDueDateConstraints();
+        };
+        
+        function setDueDateConstraints() {
+            const today = new Date();
+            const minDate = new Date(today);
+            minDate.setDate(minDate.getDate() + 1); // Tomorrow
+            
+            const maxDate = new Date(today);
+            maxDate.setDate(maxDate.getDate() + 120); // 120 days from now
+
+            dueDateInput.min = minDate.toISOString().split('T')[0];
+            dueDateInput.max = maxDate.toISOString().split('T')[0];
+        }
+
+        // --- Authentication ---
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sessionStorage.setItem('silaFlowLoggedIn', 'true');
+            loginScreen.classList.add('hidden');
+            mainAppContainer.classList.remove('hidden');
+            mainAppContainer.classList.add('fade-in');
+            initializeData();
+            showScreen('dashboard');
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            sessionStorage.removeItem('silaFlowLoggedIn');
+            mainAppContainer.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+            loginScreen.classList.add('fade-in');
+        });
+
+        function checkAuth() {
+            if (sessionStorage.getItem('silaFlowLoggedIn') === 'true') {
+                loginScreen.classList.add('hidden');
+                mainAppContainer.classList.remove('hidden');
+                showScreen('dashboard');
+            } else {
+                mainAppContainer.classList.add('hidden');
+                loginScreen.classList.remove('hidden');
+            }
+        }
+
+        // --- Data Persistence & Dashboard Update ---
+        function initializeData() {
+            if (!localStorage.getItem('silaFlowInvoices')) {
+                localStorage.setItem('silaFlowInvoices', JSON.stringify([]));
+            }
+            if (!localStorage.getItem('silaFlowWallet')) {
+                localStorage.setItem('silaFlowWallet', '0');
+            }
+        }
+
+        function updateDashboard() {
+            let invoices = JSON.parse(localStorage.getItem('silaFlowInvoices')) || [];
+            let walletBalance = parseFloat(localStorage.getItem('silaFlowWallet') || '0');
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            invoices.forEach(invoice => {
+                const dueDate = new Date(invoice.dueDate);
+                if (invoice.status === 'Funded' && today > dueDate) {
+                    invoice.status = 'Collecting';
+                }
+            });
+            localStorage.setItem('silaFlowInvoices', JSON.stringify(invoices));
+
+            invoiceListBody.innerHTML = ''; 
+
+            if (invoices.length === 0) {
+                noInvoicesMessageDashboard.classList.remove('hidden');
+            } else {
+                noInvoicesMessageDashboard.classList.add('hidden');
+                invoices.forEach(invoice => {
+                    const statusColors = {
+                        'Funded': 'bg-green-100 text-green-700',
+                        'Collecting': 'bg-amber-100 text-amber-700',
+                        'Paid': 'bg-slate-200 text-slate-600'
+                    };
+                    
+                    let actionContent = '';
+                    switch(invoice.status) {
+                        case 'Collecting':
+                            actionContent = `<button data-invoice-id="${invoice.id}" class="mark-as-paid-btn text-xs bg-green-500 text-white font-semibold py-1 px-2 rounded-md hover:bg-green-600">Mark as Paid</button>`;
+                            break;
+                        case 'Paid':
+                            actionContent = `<span class="flex items-center justify-center text-green-600"><i data-lucide="check-circle-2" class="w-4 h-4"></i></span>`;
+                            break;
+                        default:
+                            actionContent = `<span class="text-xs text-slate-400">Awaiting Due Date</span>`;
+                    }
+
+                    const mainRow = `<tr class="invoice-row hover:bg-slate-50" data-invoice-id="${invoice.id}"><td class="py-4 px-4 font-medium">${invoice.debtor}</td><td class="py-4 px-4">${formatCurrency(invoice.amount)}</td><td class="py-4 px-4">${formatDate(invoice.dueDate)}</td><td class="py-4 px-4"><span class="text-xs font-semibold px-2.5 py-1 rounded-full ${statusColors[invoice.status]}">${invoice.status}</span></td><td class="py-4 px-4 text-center">${actionContent}</td></tr>`;
+                    const detailsRow = `<tr class="details-row bg-slate-100" data-details-for="${invoice.id}"><td colspan="5" class="p-4"><div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm"><div><p class="text-slate-500">Invoice ID</p><p class="font-mono text-xs">${invoice.id.substring(0,8)}</p></div><div><p class="text-slate-500">Financing Type</p><p class="font-medium">${invoice.financingType}</p></div><div><p class="text-slate-500">Provider</p><p class="font-medium">${invoice.provider}</p></div><div><p class="text-slate-500">Amount Advanced</p><p class="font-medium">${formatCurrency(invoice.advanced)}</p></div><div><p class="text-slate-500">${invoice.financingType === 'Islamic' ? 'Profit Margin' : 'Fee Paid'}</p><p class="font-medium">${formatCurrency(invoice.fee)}</p></div></div></td></tr>`;
+                    invoiceListBody.innerHTML += mainRow + detailsRow;
+                });
+            }
+
+            const activeInvoices = invoices.filter(inv => inv.status === 'Funded' || inv.status === 'Collecting');
+            const totalAdvanced = activeInvoices.reduce((sum, inv) => sum + inv.advanced, 0);
+            const pendingCollections = invoices.filter(inv => inv.status === 'Collecting').reduce((sum, inv) => sum + inv.amount, 0);
+            
+            document.getElementById('available-balance').textContent = formatCurrency(walletBalance);
+            document.getElementById('total-capital-advanced').textContent = formatCurrency(totalAdvanced);
+            document.getElementById('pending-collections').textContent = formatCurrency(pendingCollections);
+            document.getElementById('invoices-funded').textContent = activeInvoices.length;
+            
+            withdrawBtn.disabled = walletBalance <= 0;
+            lucide.createIcons();
+        }
+
+        // --- Event Listeners ---
+        financeInvoiceBtn.addEventListener('click', resetToForm);
+        backToDashboardBtn.addEventListener('click', () => showScreen('dashboard'));
+        backToDashboardFromProfileBtn.addEventListener('click', () => showScreen('dashboard'));
+        profileBtn.addEventListener('click', () => showScreen('profile'));
+        tryAgainBtn.addEventListener('click', resetToForm);
+        finishBtn.addEventListener('click', () => showScreen('dashboard'));
+        
+        solutionConventionalBtn.addEventListener('click', () => {
+            currentInvoiceData.financingType = 'Conventional';
+            solutionConventionalBtn.classList.add('bg-white', 'text-sky-600', 'shadow');
+            solutionIslamicBtn.classList.remove('bg-white', 'text-sky-600', 'shadow');
+        });
+        
+        solutionIslamicBtn.addEventListener('click', () => {
+            currentInvoiceData.financingType = 'Islamic';
+            solutionIslamicBtn.classList.add('bg-white', 'text-sky-600', 'shadow');
+            solutionConventionalBtn.classList.remove('bg-white', 'text-sky-600', 'shadow');
+        });
+
+        invoiceForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            inputFormState.classList.add('hidden');
+            analysisState.classList.remove('hidden');
+            lucide.createIcons();
+            getOfferBtn.disabled = true;
+
+            currentInvoiceData = {
+                ...currentInvoiceData,
+                invoiceAmount: parseFloat(document.getElementById('invoice-amount').value),
+                debtorName: document.getElementById('debtor-name').value,
+                smeIndustry: document.getElementById('sme-industry').value,
+                smeAge: document.getElementById('sme-age').value,
+                paymentMethod: document.getElementById('payment-method').value,
+                dueDate: document.getElementById('due-date').value
+            };
+            
+            const existingInvoices = JSON.parse(localStorage.getItem('silaFlowInvoices')) || [];
+            const existingDebt = existingInvoices.filter(inv => inv.status !== 'Paid').reduce((sum, inv) => sum + inv.advanced, 0);
+
+            const apiKey = "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"; // Handled by environment
+            const apiUrl = 'https://api.openai.com/v1/chat/completions';
+            
+            const prompt = `You are "SilaScore", a sophisticated AI risk analyst for a UAE-based fintech called SilaFlow. Your ONLY task is to assess an invoice and return a risk profile based on the selected financing type. **Risk Assessment Framework:** **1. Debtor Quality (Most Important Factor):** * **Tier 1 (Very Low Risk):** UAE Government (e.g., ADNOC, DEWA), major Publicly Traded UAE companies (e.g., Emaar, FAB, Emirates NBD), major multinational corporations (e.g., Microsoft, Google). * **Tier 2 (Low Risk):** Large, well-known private companies (e.g., Majid Al Futtaim, Al-Futtaim Group, Chalhoub Group). * **Tier 3 (Medium Risk):** Reputable, established private SMEs. * **Tier 4 (High Risk):** Unknown small businesses, individual consumers. **2. SME Profile:** * **Operational History:** Less than 12 months is high risk. 12-24 months is medium risk. Over 24 months is low risk. * **Industry Risk:** * **Low Risk:** Tech Services, Healthcare, Professional Services, Logistics. * **Medium Risk:** Retail, F&B, General Trading. * **High Risk:** Construction, Real Estate Development. **3. Financial Exposure:** * **Existing Funded Debt:** ${existingDebt} AED * **New Requested Advance (Approximate):** ${currentInvoiceData.invoiceAmount * 0.8} AED * **Rule:** If the (Existing Funded Debt + New Requested Advance) is greater than 200,000 AED for an SME less than 24 months old, treat this as a significant risk factor. **Input Data for this Request:** * Financing Type: ${currentInvoiceData.financingType} * Debtor Name: "${currentInvoiceData.debtorName}" * SME Industry: "${currentInvoiceData.smeIndustry}" * SME Months in Business: ${currentInvoiceData.smeAge} **Decision Output (JSON ONLY):** Based on your analysis, provide a JSON response. The JSON object must have the following structure and nothing else: { "approved": boolean, "riskPremium": number (a value between 1.0 for lowest risk and 1.5 for highest risk, ONLY if approved and financing type is 'Conventional'), "fixedProfitRate": number (a value between 0.03 and 0.10, ONLY if approved and financing type is 'Islamic'), "maxAdvanceRate": number (a value between 0.60 and 0.90, ONLY if approved), "reasoning": "A detailed, one-sentence explanation for your decision." }`;
+            const payload = { model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], response_format: { type: "json_object" } };
+            
+            try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+                const result = await response.json();
+                
+                if (result.choices && result.choices.length > 0) {
+                    const aiDecision = JSON.parse(result.choices[0].message.content);
+                    currentInvoiceData = { ...currentInvoiceData, ...aiDecision };
+                    
+                    if(aiDecision.approved) {
+                        populateOffers(currentInvoiceData);
+                        showScreen('offer');
+                    } else {
+                        document.getElementById('rejection-reasoning').textContent = aiDecision.reasoning;
+                        showScreen('rejection');
+                    }
+                } else { throw new Error("No valid response from AI."); }
+            } catch (error) {
+                console.error("AI analysis failed:", error);
+                alert("An error occurred during AI analysis. Please try again.");
+                resetToForm();
+            } finally {
+                getOfferBtn.disabled = false;
+            }
+        });
+
+        // --- Marketplace Logic ---
+        const fundingProviders = {
+            Conventional: [
+                { name: "SilaFlow Capital", logo: "https://placehold.co/40x40/0ea5e9/ffffff?text=S", calculateOffer: (invoice, riskPremium, maxAdvanceRate) => ({ ...calculateConventionalFee(invoice, maxAdvanceRate, riskPremium, 0), provider: "SilaFlow Capital", advanceRate: maxAdvanceRate }) },
+                { name: "Emirates Funding", logo: "https://placehold.co/40x40/c2410c/ffffff?text=E", calculateOffer: (invoice, riskPremium, maxAdvanceRate) => { if (riskPremium > 1.3) return null; const advanceRate = maxAdvanceRate * 0.95; const fee = calculateConventionalFee(invoice, advanceRate, riskPremium, -0.005); return { ...fee, provider: "Emirates Funding", advanceRate }; } },
+                { name: "GCC SME Finance", logo: "https://placehold.co/40x40/166534/ffffff?text=G", calculateOffer: (invoice, riskPremium, maxAdvanceRate) => { const advanceRate = maxAdvanceRate; const fee = calculateConventionalFee(invoice, advanceRate, riskPremium, 0.01); return { ...fee, provider: "GCC SME Finance", advanceRate }; } }
+            ],
+            Islamic: [
+                 { name: "Dubai Islamic Bank", logo: "https://placehold.co/40x40/047857/ffffff?text=DIB", calculateOffer: (invoice, fixedProfitRate, maxAdvanceRate) => ({ ...calculateIslamicFee(invoice, maxAdvanceRate, fixedProfitRate, 0), provider: "Dubai Islamic Bank", advanceRate: maxAdvanceRate }) },
+                 { name: "Emirates Islamic", logo: "https://placehold.co/40x40/be123c/ffffff?text=EI", calculateOffer: (invoice, fixedProfitRate, maxAdvanceRate) => ({ ...calculateIslamicFee(invoice, maxAdvanceRate, fixedProfitRate, -0.002), provider: "Emirates Islamic", advanceRate: maxAdvanceRate }) }
+            ]
+        };
+
+        function calculateConventionalFee(invoice, advanceRate, riskPremium, feeModifier) {
+            const advanceAmount = invoice.invoiceAmount * advanceRate;
+            const today = new Date();
+            const due = new Date(invoice.dueDate);
+            const timeDiff = due.getTime() - today.getTime();
+            const daysToDue = Math.max(1, Math.ceil(timeDiff / (1000 * 3600 * 24)));
+            const BASE_FEE_RATE = 0.02; 
+            const DURATION_FACTOR = 0.0005; // 0.05% per day
+            
+            const durationFee = DURATION_FACTOR * daysToDue;
+            const riskFee = (riskPremium - 1.0) * 0.05;
+            const totalFeeRate = BASE_FEE_RATE + durationFee + riskFee + feeModifier;
+            
+            const feeAmount = advanceAmount * totalFeeRate;
+            const finalBalance = invoice.invoiceAmount - advanceAmount - feeAmount;
+
+            if (finalBalance < 0) return null; // PROFITABILITY SAFEGUARD
+
+            const breakdown = {
+                baseFee: `2.00%`,
+                durationFee: `${(durationFee * 100).toFixed(2)}% (for ${daysToDue} days)`,
+                riskPremium: `${((riskFee + feeModifier) * 100).toFixed(2)}%`,
+                totalRate: `${(totalFeeRate * 100).toFixed(2)}%`
+            };
+
+            return { advanceAmount, feeAmount, finalBalance, breakdown };
+        }
+        
+        function calculateIslamicFee(invoice, advanceRate, fixedProfitRate, feeModifier) {
+            const advanceAmount = invoice.invoiceAmount * advanceRate;
+            const totalFeeRate = fixedProfitRate + feeModifier;
+            const feeAmount = advanceAmount * totalFeeRate;
+            const finalBalance = invoice.invoiceAmount - advanceAmount - feeAmount;
+
+            if (finalBalance < 0) return null; // PROFITABILITY SAFEGUARD
+
+            const breakdown = {
+                profitRate: `${(totalFeeRate * 100).toFixed(2)}% (Fixed)`
+            };
+
+            return { advanceAmount, feeAmount, finalBalance, breakdown };
+        }
+
+        function populateOffers(invoiceData) {
+            offerCardsContainer.innerHTML = '';
+            const providers = fundingProviders[invoiceData.financingType];
+            let offerCount = 0;
+            
+            providers.forEach(provider => {
+                const offer = invoiceData.financingType === 'Conventional'
+                    ? provider.calculateOffer(invoiceData, invoiceData.riskPremium, invoiceData.maxAdvanceRate)
+                    : provider.calculateOffer(invoiceData, invoiceData.fixedProfitRate, invoiceData.maxAdvanceRate);
+
+                if (offer) {
+                    offerCount++;
+                    const feeLabel = invoiceData.financingType === 'Islamic' ? 'Profit Margin' : 'Fee';
+                    
+                    let breakdownHtml = '';
+                    if (invoiceData.financingType === 'Conventional') {
+                        breakdownHtml = `
+                            <div class="flex justify-between text-xs"><span class="text-slate-500">Base Rate:</span><span>${offer.breakdown.baseFee}</span></div>
+                            <div class="flex justify-between text-xs"><span class="text-slate-500">Duration Fee:</span><span>${offer.breakdown.durationFee}</span></div>
+                            <div class="flex justify-between text-xs"><span class="text-slate-500">Risk & Provider Premium:</span><span>${offer.breakdown.riskPremium}</span></div>
+                            <div class="flex justify-between text-xs font-bold border-t mt-1 pt-1"><span class="text-slate-600">Total Effective Rate:</span><span>${offer.breakdown.totalRate}</span></div>
+                        `;
+                    } else {
+                        breakdownHtml = `
+                            <div class="flex justify-between text-xs"><span class="text-slate-500">Agreed Profit Rate:</span><span class="font-bold">${offer.breakdown.profitRate}</span></div>
+                        `;
+                    }
+
+                    const card = `
+                        <div class="offer-card bg-white p-6 rounded-xl border-2 border-slate-200 hover:border-sky-500">
+                            <div class="flex items-center space-x-3 mb-4">
+                                <img src="${provider.logo}" alt="${provider.name}" class="w-10 h-10 rounded-full">
+                                <h3 class="font-bold text-lg">${provider.name}</h3>
+                            </div>
+                            <div class="space-y-3 text-left">
+                                <div class="flex justify-between items-baseline"><p class="text-sm text-slate-500">Advance Amount</p><p class="font-bold text-green-600">${formatCurrency(offer.advanceAmount)}</p></div>
+                                <div class="flex justify-between items-baseline">
+                                    <p class="text-sm text-slate-500 flex items-center">${feeLabel} <button class="show-breakdown-btn ml-1 text-sky-500 hover:text-sky-700"><i data-lucide="info" class="w-3 h-3"></i></button></p>
+                                    <p class="font-bold">${formatCurrency(offer.feeAmount)}</p>
+                                </div>
+                                <div class="fee-breakdown bg-slate-50 p-2 rounded-md text-slate-600">
+                                    ${breakdownHtml}
+                                </div>
+                                <div class="flex justify-between items-baseline"><p class="text-sm text-slate-500">Final Balance</p><p class="font-bold">${formatCurrency(offer.finalBalance)}</p></div>
+                            </div>
+                            <button class="accept-offer-btn w-full mt-6 bg-sky-500 text-white font-semibold py-2 rounded-lg hover:bg-sky-600" data-offer='${JSON.stringify(offer)}'>Select Offer</button>
+                        </div>`;
+                    offerCardsContainer.innerHTML += card;
+                }
+            });
+
+            if (offerCount === 0) {
+                noOffersMessage.classList.remove('hidden');
+            } else {
+                noOffersMessage.classList.add('hidden');
+            }
+            lucide.createIcons();
+        }
+        
+        offerCardsContainer.addEventListener('click', e => {
+            const acceptBtn = e.target.closest('.accept-offer-btn');
+            const breakdownBtn = e.target.closest('.show-breakdown-btn');
+
+            if (acceptBtn) {
+                const offer = JSON.parse(acceptBtn.dataset.offer);
+                
+                const newInvoice = {
+                    id: crypto.randomUUID(),
+                    debtor: currentInvoiceData.debtorName,
+                    amount: currentInvoiceData.invoiceAmount,
+                    advanced: offer.advanceAmount,
+                    fee: offer.feeAmount,
+                    finalBalance: offer.finalBalance,
+                    provider: offer.provider,
+                    financingType: currentInvoiceData.financingType,
+                    paymentMethod: currentInvoiceData.paymentMethod,
+                    dueDate: currentInvoiceData.dueDate,
+                    status: 'Funded'
+                };
+
+                const invoices = JSON.parse(localStorage.getItem('silaFlowInvoices')) || [];
+                invoices.unshift(newInvoice);
+                localStorage.setItem('silaFlowInvoices', JSON.stringify(invoices));
+                
+                document.getElementById('confirm-provider-name').textContent = offer.provider;
+                document.getElementById('confirm-advance-amount').textContent = formatCurrency(offer.advanceAmount);
+                showScreen('confirmation');
+            }
+
+            if (breakdownBtn) {
+                const breakdownDiv = breakdownBtn.closest('.text-left').querySelector('.fee-breakdown');
+                breakdownDiv.classList.toggle('visible');
+            }
+        });
+        
+        invoiceListBody.addEventListener('click', (e) => {
+            const row = e.target.closest('.invoice-row');
+            if (row) {
+                const invoiceId = row.dataset.invoiceId;
+                const detailsRow = document.querySelector(`.details-row[data-details-for="${invoiceId}"]`);
+                if (detailsRow) {
+                    detailsRow.classList.toggle('visible');
+                }
+            }
+
+            if (e.target && e.target.classList.contains('mark-as-paid-btn')) {
+                const invoiceId = e.target.getAttribute('data-invoice-id');
+                let invoices = JSON.parse(localStorage.getItem('silaFlowInvoices')) || [];
+                let walletBalance = parseFloat(localStorage.getItem('silaFlowWallet') || '0');
+
+                const invoiceIndex = invoices.findIndex(inv => inv.id === invoiceId);
+                if (invoiceIndex > -1) {
+                    const paidInvoice = invoices[invoiceIndex];
+                    paidInvoice.status = 'Paid';
+                    walletBalance += paidInvoice.finalBalance;
+
+                    localStorage.setItem('silaFlowInvoices', JSON.stringify(invoices));
+                    localStorage.setItem('silaFlowWallet', walletBalance.toString());
+                    
+                    showToast(`${formatCurrency(paidInvoice.finalBalance)} added to your available balance.`);
+                    updateDashboard();
+                }
+            }
+        });
+
+        withdrawBtn.addEventListener('click', () => {
+            let walletBalance = parseFloat(localStorage.getItem('silaFlowWallet') || '0');
+            if (walletBalance > 0) {
+                localStorage.setItem('silaFlowWallet', '0');
+                showToast(`Withdrawal of ${formatCurrency(walletBalance)} initiated.`);
+                updateDashboard();
+            }
+        });
+
+        // --- Initial Load ---
+        checkAuth();
+        setDueDateConstraints();
+    </script>
+</body>
+</html>
