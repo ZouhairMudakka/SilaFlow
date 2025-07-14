@@ -53,12 +53,6 @@
             box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
         .fee-breakdown {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out, margin-top 0.3s ease-out;
-        }
-        .fee-breakdown.visible {
-            max-height: 200px; /* Adjust as needed */
             margin-top: 0.75rem; /* mt-3 */
         }
     </style>
@@ -626,8 +620,8 @@
         const fundingProviders = {
             Conventional: [
                 { name: "Suyula.ae Capital", logo: "https://placehold.co/40x40/0ea5e9/ffffff?text=S", calculateOffer: (invoice, riskPremium, maxAdvanceRate) => ({ ...calculateConventionalFee(invoice, maxAdvanceRate, riskPremium, 0), provider: "Suyula.ae Capital", advanceRate: maxAdvanceRate }) },
-                { name: "Emirates NBD", logo: "https://placehold.co/40x40/c2410c/ffffff?text=E", calculateOffer: (invoice, riskPremium, maxAdvanceRate) => { if (riskPremium > 1.3) return null; const advanceRate = maxAdvanceRate * 0.95; const fee = calculateConventionalFee(invoice, advanceRate, riskPremium, -0.005); return { ...fee, provider: "Emirates Funding", advanceRate }; } },
-                { name: "ADIB", logo: "https://placehold.co/40x40/166534/ffffff?text=G", calculateOffer: (invoice, riskPremium, maxAdvanceRate) => { const advanceRate = maxAdvanceRate; const fee = calculateConventionalFee(invoice, advanceRate, riskPremium, 0.01); return { ...fee, provider: "GCC SME Finance", advanceRate }; } }
+                { name: "Emirates NBD", logo: "https://placehold.co/40x40/c2410c/ffffff?text=E", calculateOffer: (invoice, riskPremium, maxAdvanceRate) => { if (riskPremium > 1.3) return null; const advanceRate = maxAdvanceRate * 0.95; const fee = calculateConventionalFee(invoice, advanceRate, riskPremium, -0.005); return { ...fee, provider: "Emirates NBD", advanceRate }; } },
+                { name: "ADIB", logo: "https://placehold.co/40x40/166534/ffffff?text=G", calculateOffer: (invoice, riskPremium, maxAdvanceRate) => { const advanceRate = maxAdvanceRate; const fee = calculateConventionalFee(invoice, advanceRate, riskPremium, 0.01); return { ...fee, provider: "ADIB", advanceRate }; } }
             ],
             Islamic: [
                  { name: "Dubai Islamic Bank", logo: "https://placehold.co/40x40/047857/ffffff?text=DIB", calculateOffer: (invoice, fixedProfitRate, maxAdvanceRate) => ({ ...calculateIslamicFee(invoice, maxAdvanceRate, fixedProfitRate, 0), provider: "Dubai Islamic Bank", advanceRate: maxAdvanceRate }) },
