@@ -591,10 +591,16 @@
             const payload = { model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], response_format: { type: "json_object" } };
             
             try {
-                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(payload) });
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload) // The payload is already correctly defined for OpenAI
+                });
                 if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
                 const result = await response.json();
                 
+                // The response from your proxy function will be the OpenAI response.
+                // This part of the logic is correct for handling OpenAI's response.
                 if (result.choices && result.choices.length > 0) {
                     const aiDecision = JSON.parse(result.choices[0].message.content);
                     currentInvoiceData = { ...currentInvoiceData, ...aiDecision };
@@ -606,7 +612,7 @@
                         document.getElementById('rejection-reasoning').textContent = aiDecision.reasoning;
                         showScreen('rejection');
                     }
-                } else { throw new Error("No valid response from AI."); }
+                } else { throw new Error("No valid response from AI proxy."); }
             } catch (error) {
                 console.error("AI analysis failed:", error);
                 alert("An error occurred during AI analysis. Please try again.");
